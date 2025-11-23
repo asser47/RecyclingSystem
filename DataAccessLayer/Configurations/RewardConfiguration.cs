@@ -20,7 +20,7 @@ namespace RecyclingSystem.DataAccess.Configurations
                    .IsRequired()
                    .HasMaxLength(100);
 
-            builder.Property(r => r.Description)
+            builder.Property(r => r.RewardType)
                    .HasMaxLength(300);
 
             builder.Property(r => r.RequiredPoints)

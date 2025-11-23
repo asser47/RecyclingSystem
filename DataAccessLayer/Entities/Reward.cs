@@ -13,7 +13,7 @@ namespace RecyclingSystem.DataAccess.Entities
 
         public string Title { get; set; } = string.Empty;
 
-        public string Description { get; set; } = string.Empty;
+        public string RewardType { get; set; } = string.Empty;
 
         public int RequiredPoints { get; set; }
 
