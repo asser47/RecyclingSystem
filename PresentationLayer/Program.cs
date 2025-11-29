@@ -1,8 +1,11 @@
+
+using BusinessLogicLayer.Services;
 using DataAccessLayer.Context;
 using DataAccessLayer.Entities;
 using DataAccessLayer.UnitOfWork;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace RecyclingSystem
 {
@@ -38,9 +41,10 @@ namespace RecyclingSystem
             })
             .AddEntityFrameworkStores<RecyclingDbContext>()
             .AddDefaultTokenProviders();
-
+            builder.Services.AddScoped<MaterialService>();
             // Register Unit of Work
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            
 
             // Configure Authentication
             builder.Services.AddAuthentication();
@@ -53,16 +57,25 @@ namespace RecyclingSystem
             });
 
             builder.Services.AddControllers();
-            
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            builder.Services.AddEndpointsApiExplorer();    // Add this line
+            builder.Services.AddSwaggerGen();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            });
 
             var app = builder.Build();
-
+            app.UseCors("AllowAll");
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.UseSwagger();      // Add this line
+                app.UseSwaggerUI();    // Add this line
             }
 
             app.UseHttpsRedirection();
