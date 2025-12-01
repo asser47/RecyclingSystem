@@ -96,7 +96,7 @@ namespace PresentationLayer.Controllers
         // Create new order
         // ---------------------------------------------------------
         [HttpPost]
-        public async Task<IActionResult> Create(OrderDto dto)
+        public async Task<IActionResult> Create(CreateOrderDto dto)
         {
             try
             {
