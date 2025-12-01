@@ -1,5 +1,6 @@
 ﻿using BusinessLogicLayer.DTOs;
 using BusinessLogicLayer.IServices;
+using BussinessLogicLayer.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
@@ -57,6 +58,29 @@ namespace RecyclingSystem.Controllers
                 return Unauthorized("Invalid credentials or email not confirmed.");
 
             return Ok(new { token });
+        }
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            // We always return 200 to avoid leaking if email exists or not
+            await _authService.SendPasswordResetLinkAsync(dto);
+
+            return Ok("If an account with that email exists, a password reset link has been sent.");
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _authService.ResetPasswordAsync(dto);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok("Password has been reset successfully.");
         }
 
     }
