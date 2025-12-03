@@ -1,5 +1,5 @@
 ﻿using BusinessLogicLayer.IServices;
-using BussinessLogicLayer.DTOs.AppDto;
+using BussinessLogicLayer.DTOs.AppUser;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;

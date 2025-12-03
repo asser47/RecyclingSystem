@@ -1,4 +1,4 @@
-﻿using BussinessLogicLayer.DTOs.OrderDto;
+﻿using BussinessLogicLayer.DTOs.Order;
 
 namespace BusinessLogicLayer.IServices
 {

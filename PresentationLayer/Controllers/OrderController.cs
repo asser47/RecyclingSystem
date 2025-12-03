@@ -1,5 +1,5 @@
 using BusinessLogicLayer.IServices;
-using BussinessLogicLayer.DTOs.OrderDto;
+using BussinessLogicLayer.DTOs.Order;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PresentationLayer.Controllers

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using BusinessLogicLayer.IServices;
-using BussinessLogicLayer.DTOs.FactoryDto;
+using BussinessLogicLayer.DTOs.Factory;
 using DataAccessLayer.Entities;
 
 namespace BusinessLogicLayer.Services

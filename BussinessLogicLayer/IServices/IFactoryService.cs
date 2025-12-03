@@ -1,4 +1,4 @@
-﻿using BussinessLogicLayer.DTOs.FactoryDto;
+﻿using BussinessLogicLayer.DTOs.Factory;
 
 namespace BusinessLogicLayer.IServices
 {

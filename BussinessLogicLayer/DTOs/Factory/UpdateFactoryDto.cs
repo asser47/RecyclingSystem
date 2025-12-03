@@ -1,4 +1,4 @@
-namespace BussinessLogicLayer.DTOs.FactoryDto
+namespace BussinessLogicLayer.DTOs.Factory
 {
     public class UpdateFactoryDto
     {

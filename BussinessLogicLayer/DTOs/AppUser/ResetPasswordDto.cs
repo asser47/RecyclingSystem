@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BussinessLogicLayer.DTOs.AppDto
+namespace BussinessLogicLayer.DTOs.AppUser
 {
     public class ResetPasswordDto
     {

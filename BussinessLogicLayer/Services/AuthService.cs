@@ -1,5 +1,5 @@
 ﻿using BusinessLogicLayer.IServices;
-using BussinessLogicLayer.DTOs.AppDto;
+using BussinessLogicLayer.DTOs.AppUser;
 using BussinessLogicLayer.IServices;
 using DataAccessLayer.Entities;
 using Microsoft.AspNetCore.Identity;

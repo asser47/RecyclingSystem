@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BussinessLogicLayer.DTOs.OrderDto
+namespace BussinessLogicLayer.DTOs.Order
 {
     public class CreateOrderDto
     {
