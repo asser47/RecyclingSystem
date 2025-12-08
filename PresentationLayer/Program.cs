@@ -53,8 +53,7 @@ namespace RecyclingSystem
 
             // Register Material Service
             builder.Services.AddScoped<MaterialService>();
-                        builder.Services.AddScoped<IOrderService, OrderService>();
-
+            builder.Services.AddScoped<IOrderService, OrderService>();
             // Register Unit of Work
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
