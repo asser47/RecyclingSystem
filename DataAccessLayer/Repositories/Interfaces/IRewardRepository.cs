@@ -20,5 +20,7 @@ namespace DataAccessLayer.Repositories.Interfaces
         Task<IEnumerable<Reward>> GetRewardsInPointRangeAsync(int minPoints, int maxPoints);
         Task<IEnumerable<HistoryReward>> GetUserRedemptionHistoryAsync(string userId);
         Task<IEnumerable<Reward>> GetAlmostAffordableRewardsAsync(int userPoints, int pointsGap = 50);
+        Task UpdateAsync(Reward reward);
+        Task DeleteAsync(int id);
     }
 }
