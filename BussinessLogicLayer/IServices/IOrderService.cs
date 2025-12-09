@@ -14,5 +14,9 @@ namespace BusinessLogicLayer.IServices
         Task AddAsync(OrderDto dto);
         Task UpdateAsync(OrderDto dto);
         Task DeleteAsync(int id);
+
+        // Points system methods
+        Task<bool> CompleteOrderAsync(int orderId);
+        Task<int> GetPointsForOrderAsync(int orderId);
     }
 }

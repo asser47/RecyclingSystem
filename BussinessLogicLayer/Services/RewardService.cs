@@ -1,116 +1,211 @@
-﻿using BussinessLogicLayer.DTOs.Reward;
+﻿using AutoMapper;
 using BusinessLogicLayer.IServices;
-using DataAccessLayer.Repositories.Interfaces;
+using BussinessLogicLayer.DTOs.Reward;
+using DataAccessLayer.Entities;
+using DataAccessLayer.UnitOfWork;
 using RecyclingSystem.DataAccess.Entities;
 
 namespace BusinessLogicLayer.Services
 {
     public class RewardService : IRewardService
     {
-        private readonly IRewardRepository _rewardRepo;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public RewardService(IRewardRepository rewardRepo)
+        public RewardService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _rewardRepo = rewardRepo;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
-        // Get all rewards
+        // Basic CRUD Operations
         public async Task<IEnumerable<RewardDto>> GetAllAsync()
         {
-            var rewards = await _rewardRepo.GetAllAsync();
-            return rewards.Select(r => new RewardDto
-            {
-                ID = r.ID,
-                Title = r.Name,
-                Description = r.Description,
-                RequiredPoints = r.RequiredPoints
-            });
+            var rewards = await _unitOfWork.Rewards.GetAllAsync();
+            return _mapper.Map<IEnumerable<RewardDto>>(rewards);
         }
-        // Get reward by ID
+
         public async Task<RewardDto?> GetByIdAsync(int id)
         {
-            var reward = await _rewardRepo.GetByIdAsync(id);
-            if (reward == null) return null;
+            var reward = await _unitOfWork.Rewards.GetByIdAsync(id);
+            return reward == null ? null : _mapper.Map<RewardDto>(reward);
+        }
 
-            return new RewardDto
+        public async Task<RewardDto> AddAsync(CreateRewardDto dto)
+        {
+            // Check for duplicate name
+            if (await _unitOfWork.Rewards.RewardExistsByNameAsync(dto.Name))
             {
-                ID = reward.ID,
-                Title = reward.Name,
-                Description = reward.Description,
-                RequiredPoints = reward.RequiredPoints
-            };
+                throw new InvalidOperationException($"Reward with name '{dto.Name}' already exists.");
+            }
+
+            var reward = _mapper.Map<Reward>(dto);
+            reward.IsAvailable = true;
+
+            await _unitOfWork.Rewards.AddRewardAsync(reward);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<RewardDto>(reward);
         }
 
-        // Add new reward
-        public async Task AddAsync(RewardDto dto)
+        public async Task<RewardDto> UpdateAsync(UpdateRewardDto dto)
         {
-            var reward = new Reward
+            // Check for duplicate name (excluding current reward)
+            if (await _unitOfWork.Rewards.RewardExistsByNameAsync(dto.Name, dto.ID))
             {
-                Name = dto.Title,
-                Description = dto.Description,
-                RequiredPoints = dto.RequiredPoints,
-                Category = "General",
-                StockQuantity = 1,
-                IsAvailable = true
-            };
+                throw new InvalidOperationException($"Another reward with name '{dto.Name}' already exists.");
+            }
 
-            await _rewardRepo.AddAsync(reward);
+            var reward = _mapper.Map<Reward>(dto);
+            await _unitOfWork.Rewards.UpdateAsync(reward);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<RewardDto>(reward);
         }
 
-        // Update existing reward
-        public async Task UpdateAsync(RewardDto dto)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var reward = await _rewardRepo.GetByIdAsync(dto.ID);
-            if (reward == null) return;
-
-            reward.Name = dto.Title;
-            reward.Description = dto.Description;
-            reward.RequiredPoints = dto.RequiredPoints;
-
-            // Use synchronous Update from GenericRepository
-            _rewardRepo.Update(reward);
+            await _unitOfWork.Rewards.DeleteAsync(id);
+            await _unitOfWork.SaveChangesAsync();
+            return true;
         }
 
-        // Delete reward by ID
-        public async Task DeleteAsync(int id)
+        // User-facing Features
+        public async Task<IEnumerable<RewardDto>> GetAvailableRewardsForUserAsync(string userId)
         {
-            var reward = await _rewardRepo.GetByIdAsync(id);
-            if (reward == null) return;
+            var user = await _unitOfWork.Orders.FirstOrDefaultAsync(o => o.UserId == userId);
+            var userPoints = user?.User?.Points ?? 0;
 
-            // Use synchronous Remove from GenericRepository
-            _rewardRepo.Remove(reward);
+            var rewards = await _unitOfWork.Rewards.GetAvailableRewardsForUserAsync(userPoints);
+            return _mapper.Map<IEnumerable<RewardDto>>(rewards);
         }
-        //        REDEEM
-        // Redeem a reward: deduct points, decrease stock, mark for redemption
-        public async Task<string> RedeemAsync(string userId, int rewardId, int userPoints)
+
+        public async Task<IEnumerable<RewardDto>> GetRewardsByCategoryAsync(string category, string? userId = null)
         {
-            // 1) Get the reward
-            var reward = await _rewardRepo.GetByIdAsync(rewardId);
+            int? userPoints = null;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _unitOfWork.Orders.FirstOrDefaultAsync(o => o.UserId == userId);
+                userPoints = user?.User?.Points ?? 0;
+            }
+
+            var rewards = await _unitOfWork.Rewards.GetRewardsByCategoryAsync(category, userPoints);
+            return _mapper.Map<IEnumerable<RewardDto>>(rewards);
+        }
+
+        public async Task<IEnumerable<RewardDto>> GetPopularRewardsAsync(int topCount = 10)
+        {
+            var rewards = await _unitOfWork.Rewards.GetPopularRewardsAsync(topCount);
+            return _mapper.Map<IEnumerable<RewardDto>>(rewards);
+        }
+
+        public async Task<IEnumerable<RewardDto>> SearchRewardsAsync(string searchTerm, string? userId = null)
+        {
+            int? userPoints = null;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _unitOfWork.Orders.FirstOrDefaultAsync(o => o.UserId == userId);
+                userPoints = user?.User?.Points ?? 0;
+            }
+
+            var rewards = await _unitOfWork.Rewards.SearchRewardsAsync(searchTerm, userPoints);
+            return _mapper.Map<IEnumerable<RewardDto>>(rewards);
+        }
+
+        public async Task<IEnumerable<string>> GetAllCategoriesAsync()
+        {
+            return await _unitOfWork.Rewards.GetAllCategoriesAsync();
+        }
+
+        // Redemption Logic
+        public async Task<bool> RedeemRewardAsync(string userId, RedeemRewardDto dto)
+        {
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+
+                // Get user with points
+                var user = await _unitOfWork.Orders.FirstOrDefaultAsync(o => o.UserId == userId);
+                if (user?.User == null)
+                    throw new KeyNotFoundException("User not found");
+
+                // Get reward
+                var reward = await _unitOfWork.Rewards.GetRewardForRedemptionAsync(dto.RewardId);
+                if (reward == null)
+                    throw new InvalidOperationException("Reward is not available");
+
+                // Validate stock
+                if (reward.StockQuantity < dto.Quantity)
+                    throw new InvalidOperationException("Insufficient stock");
+
+                // Calculate points
+                int totalPointsNeeded = reward.RequiredPoints * dto.Quantity;
+
+                // Validate user points
+                if (user.User.Points < totalPointsNeeded)
+                    throw new InvalidOperationException("Insufficient points");
+
+                // Deduct points
+                user.User.Points -= totalPointsNeeded;
+
+                // Deduct stock
+                await _unitOfWork.Rewards.UpdateStockQuantityAsync(dto.RewardId, -dto.Quantity);
+
+                // Create redemption history
+                var historyReward = new HistoryReward
+                {
+                    UserId = userId,
+                    RewardId = dto.RewardId,
+                    PointsUsed = totalPointsNeeded,
+                    Quantity = dto.Quantity,
+                    RedeemedAt = DateTime.UtcNow,
+                    Status = RedemptionStatus.Pending
+                };
+
+                await _unitOfWork.Orders.AddAsync(user); // Update user points
+                // Note: Add HistoryReward repository to UnitOfWork
+                // await _unitOfWork.HistoryRewards.AddAsync(historyReward);
+
+                await _unitOfWork.CommitTransactionAsync();
+                return true;
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        // Admin Features
+        public async Task<IEnumerable<RewardDto>> GetLowStockRewardsAsync(int threshold = 10)
+        {
+            var rewards = await _unitOfWork.Rewards.GetLowStockRewardsAsync(threshold);
+            return _mapper.Map<IEnumerable<RewardDto>>(rewards);
+        }
+
+        public async Task<RewardWithStatsDto?> GetRewardWithStatsAsync(int rewardId)
+        {
+            var reward = await _unitOfWork.Rewards.GetRewardWithHistoryAsync(rewardId);
             if (reward == null)
-                return "Reward not found";
+                return null;
 
-            if (!reward.IsAvailable || reward.StockQuantity <= 0)
-                return "Reward is not available";
+            var dto = _mapper.Map<RewardWithStatsDto>(reward);
+            dto.TotalRedemptions = reward.HistoryRewards.Count;
+            dto.PendingRedemptions = reward.HistoryRewards.Count(hr => hr.Status == RedemptionStatus.Pending);
 
-            // 2) Check if the user has enough points
-            if (userPoints < reward.RequiredPoints)
-                return "Not enough points";
+            return dto;
+        }
 
-            // 3) Deduct user points
-            userPoints -= reward.RequiredPoints;
-
-            // 4) Decrease reward stock
-            reward.StockQuantity--;
-            if (reward.StockQuantity == 0)
-                reward.IsAvailable = false;
-
-            _rewardRepo.Update(reward); // synchronous update
-
-            // 5) Convert points to redeemed product
-            // The redemption process is completed here
-            // Status can later be updated to Pending -> Completed when the collector receives the reward
-
-            return $"Reward '{reward.Name}' redeemed successfully. Points deducted: {reward.RequiredPoints}";
+        public async Task<bool> UpdateStockAsync(int rewardId, int quantityChange)
+        {
+            var result = await _unitOfWork.Rewards.UpdateStockQuantityAsync(rewardId, quantityChange);
+            if (result)
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
+            return result;
         }
     }
 }

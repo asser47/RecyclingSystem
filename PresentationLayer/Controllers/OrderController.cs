@@ -116,5 +116,82 @@ namespace PresentationLayer.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        /// <summary>
+        /// Complete an order and award points to the user based on materials recycled
+        /// </summary>
+        /// <param name="id">Order ID</param>
+        /// <returns>Success message with total points awarded</returns>
+        [HttpPost("{id}/complete")]
+        public async Task<IActionResult> CompleteOrder(int id)
+        {
+            try
+            {
+                var pointsAwarded = await _orderService.GetPointsForOrderAsync(id);
+                var completed = await _orderService.CompleteOrderAsync(id);
+                
+                if (!completed)
+                {
+                    return BadRequest("Order is already completed");
+                }
+
+                return Ok(new
+                {
+                    Message = "Order completed successfully",
+                    PointsAwarded = pointsAwarded,
+                    PointsBreakdown = new
+                    {
+                        Plastic = "5 points per kg",
+                        Paper = "8 points per kg",
+                        Can = "10 points per kg"
+                    }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get estimated points for an order without completing it
+        /// </summary>
+        /// <param name="id">Order ID</param>
+        /// <returns>Estimated points based on materials</returns>
+        [HttpGet("{id}/points")]
+        public async Task<IActionResult> GetOrderPoints(int id)
+        {
+            try
+            {
+                var points = await _orderService.GetPointsForOrderAsync(id);
+                return Ok(new
+                {
+                    OrderId = id,
+                    EstimatedPoints = points,
+                    PointsBreakdown = new
+                    {
+                        Plastic = "5 points per kg",
+                        Paper = "8 points per kg",
+                        Can = "10 points per kg"
+                    }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

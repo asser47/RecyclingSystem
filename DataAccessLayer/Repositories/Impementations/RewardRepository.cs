@@ -127,7 +127,113 @@ namespace DataAccessLayer.Repositories.Impementations
                 .OrderBy(r => r.RequiredPoints)
                 .ToListAsync();
         }
-        //
+
+        // Added method to add a new reward with validation
+        public async Task AddRewardAsync(Reward reward)
+        {
+            if (reward == null)
+                throw new ArgumentNullException(nameof(reward));
+
+            if (reward.RequiredPoints < 0)
+                throw new ArgumentException("Required points cannot be negative", nameof(reward));
+
+            if (reward.StockQuantity < 0)
+                throw new ArgumentException("Stock quantity cannot be negative", nameof(reward));
+
+            await _dbSet.AddAsync(reward);
+        }
+
+        // Added method to update an existing reward
+        public async Task UpdateAsync(Reward reward)
+        {
+            if (reward == null)
+                throw new ArgumentNullException(nameof(reward));
+
+            var existingReward = await _dbSet.FindAsync(reward.ID);
+            if (existingReward == null)
+                throw new KeyNotFoundException($"Reward with ID {reward.ID} not found");
+
+            existingReward.Name = reward.Name;
+            existingReward.Description = reward.Description;
+            existingReward.Category = reward.Category;
+            existingReward.RequiredPoints = reward.RequiredPoints;
+            existingReward.StockQuantity = reward.StockQuantity;
+            existingReward.IsAvailable = reward.IsAvailable;
+            existingReward.ImageUrl = reward.ImageUrl;
+
+            _dbSet.Update(existingReward);
+        }
+
+        // Added method to delete a reward by ID
+        public async Task DeleteAsync(int id)
+        {
+            var reward = await _dbSet.FindAsync(id);
+            if (reward == null)
+                throw new KeyNotFoundException($"Reward with ID {id} not found");
+
+            // Check if reward has been redeemed
+            var hasRedemptions = await _context.Set<HistoryReward>()
+                .AnyAsync(hr => hr.RewardId == id);
+
+            if (hasRedemptions)
+            {
+                // Soft delete: mark as unavailable instead of deleting
+                reward.IsAvailable = false;
+                _dbSet.Update(reward);
+            }
+            else
+            {
+                // Hard delete if no redemptions
+                _dbSet.Remove(reward);
+            }
+        }
+
+        // Added method to update stock quantity for a reward
+        public async Task<bool> UpdateStockQuantityAsync(int rewardId, int quantityChange)
+        {
+            var reward = await _dbSet.FindAsync(rewardId);
+            if (reward == null)
+                return false;
+
+            reward.StockQuantity += quantityChange;
+
+            if (reward.StockQuantity < 0)
+                reward.StockQuantity = 0;
+
+            if (reward.StockQuantity == 0)
+                reward.IsAvailable = false;
+            else if (reward.StockQuantity > 0 && !reward.IsAvailable)
+                reward.IsAvailable = true;
+
+            _dbSet.Update(reward);
+            return true;
+        }
+
+        // Added method to get all reward categories
+        public async Task<IEnumerable<string>> GetAllCategoriesAsync()
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Where(r => r.IsAvailable)
+                .Select(r => r.Category)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+        }
+
+        // Added method to check if reward exists by name
+        public async Task<bool> RewardExistsByNameAsync(string name, int? excludeId = null)
+        {
+            var query = _dbSet.AsNoTracking()
+                .Where(r => r.Name.ToLower() == name.ToLower());
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(r => r.ID != excludeId.Value);
+            }
+
+            return await query.AnyAsync();
+        }
 
     }
 }

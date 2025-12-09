@@ -10,6 +10,7 @@ namespace DataAccessLayer.Repositories.Interfaces
 {
     public interface IRewardRepository : IGenericRepository<Reward>
     {
+        // Query methods
         Task<IEnumerable<Reward>> GetAvailableRewardsForUserAsync(int userPoints);
         Task<Reward?> GetRewardWithHistoryAsync(int rewardId);
         Task<Reward?> GetRewardForRedemptionAsync(int rewardId);
@@ -20,6 +21,14 @@ namespace DataAccessLayer.Repositories.Interfaces
         Task<IEnumerable<Reward>> GetRewardsInPointRangeAsync(int minPoints, int maxPoints);
         Task<IEnumerable<HistoryReward>> GetUserRedemptionHistoryAsync(string userId);
         Task<IEnumerable<Reward>> GetAlmostAffordableRewardsAsync(int userPoints, int pointsGap = 50);
-   
+        Task<IEnumerable<string>> GetAllCategoriesAsync();
+
+        // Command methods
+        Task AddRewardAsync(Reward reward);
+        Task UpdateAsync(Reward reward);
+        Task DeleteAsync(int id);
+        Task<bool> UpdateStockQuantityAsync(int rewardId, int quantityChange);
+
+        Task<bool> RewardExistsByNameAsync(string name, int? excludeId = null);
     }
 }
