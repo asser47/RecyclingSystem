@@ -143,38 +143,5 @@ namespace PresentationLayer.Controllers
             var result = await _orderService.CancelOrderAsync(id);
             return Ok(new { success = result, message = "Order cancelled" });
         }
-
-        /// <summary>
-        /// Get estimated points for an order without completing it
-        /// </summary>
-        /// <param name="id">Order ID</param>
-        /// <returns>Estimated points based on materials</returns>
-        [HttpGet("{id}/points")]
-        public async Task<IActionResult> GetOrderPoints(int id)
-        {
-            try
-            {
-                var points = await _orderService.GetPointsForOrderAsync(id);
-                return Ok(new
-                {
-                    OrderId = id,
-                    EstimatedPoints = points,
-                    PointsBreakdown = new
-                    {
-                        Plastic = "5 points per kg",
-                        Paper = "8 points per kg",
-                        Can = "10 points per kg"
-                    }
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
     }
 }

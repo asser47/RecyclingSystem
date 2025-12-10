@@ -1,4 +1,4 @@
-using BusinessLogicLayer.IServices;
+﻿using BusinessLogicLayer.IServices;
 using BusinessLogicLayer.Mappers;
 using BusinessLogicLayer.Services;
 using BussinessLogicLayer.IServices;
@@ -62,6 +62,7 @@ namespace RecyclingSystem
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IRewardService, RewardService>();
+            builder.Services.AddScoped<IImageService, ImageService>();
 
             // Register AutoMapper
             builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
@@ -133,6 +134,9 @@ namespace RecyclingSystem
                            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
                 });
             }
+
+            // Enable serving static files for uploaded images
+            app.UseStaticFiles();
 
             app.UseHttpsRedirection();
 
