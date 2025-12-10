@@ -63,6 +63,7 @@ namespace RecyclingSystem
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IRewardService, RewardService>();
             builder.Services.AddScoped<IImageService, ImageService>();
+            builder.Services.AddScoped<IHistoryRewardService, HistoryRewardService>();
 
             // Register AutoMapper
             builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
