@@ -82,7 +82,7 @@ namespace PresentationLayer.Controllers
             return Ok(categories);
         }
 
-        // POST: api/reward (with image upload support)
+        // POST: api/reward
         [HttpPost]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Create([FromForm] CreateRewardWithImageDto dto)
@@ -120,7 +120,7 @@ namespace PresentationLayer.Controllers
             }
         }
 
-        // PUT: api/reward/5 (with image upload support)
+        // PUT: api/reward/5
         [HttpPut("{id}")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update(int id, [FromForm] UpdateRewardWithImageDto dto)
@@ -168,57 +168,8 @@ namespace PresentationLayer.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                // Get reward to delete its image
-                var reward = await _rewardService.GetByIdAsync(id);
-                
-                // Delete from database
-                var result = await _rewardService.DeleteAsync(id);
-                
-                if (!result)
-                    return NotFound();
-
-                // Delete image file if exists
-                if (!string.IsNullOrWhiteSpace(reward?.ImageUrl))
-                {
-                    _imageService.DeleteRewardImage(reward.ImageUrl);
-                }
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
-            }
-        }
-
-        // POST: api/reward/upload-image (Upload image only)
-        [HttpPost("upload-image")]
-        public async Task<IActionResult> UploadImage([FromForm] IFormFile imageFile)
-        {
-            try
-            {
-                if (imageFile == null || imageFile.Length == 0)
-                    return BadRequest(new { error = "No file uploaded" });
-
-                var imageUrl = await _imageService.SaveRewardImageAsync(imageFile);
-                
-                return Ok(new 
-                { 
-                    success = true, 
-                    imageUrl = imageUrl,
-                    message = "Image uploaded successfully" 
-                });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
-            }
+            var result = await _rewardService.DeleteAsync(id);
+            return result ? NoContent() : NotFound();
         }
 
         // POST: api/reward/redeem
