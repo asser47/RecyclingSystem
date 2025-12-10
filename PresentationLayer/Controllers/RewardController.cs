@@ -11,10 +11,12 @@ namespace PresentationLayer.Controllers
     public class RewardController : ControllerBase
     {
         private readonly IRewardService _rewardService;
+        private readonly IImageService _imageService;
 
-        public RewardController(IRewardService rewardService)
+        public RewardController(IRewardService rewardService, IImageService imageService)
         {
             _rewardService = rewardService;
+            _imageService = imageService;
         }
 
         // GET: api/reward
@@ -80,31 +82,143 @@ namespace PresentationLayer.Controllers
             return Ok(categories);
         }
 
-        // POST: api/reward
+        // POST: api/reward (with image upload support)
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateRewardDto dto)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Create([FromForm] CreateRewardWithImageDto dto)
         {
-            var reward = await _rewardService.AddAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = reward.ID }, reward);
+            try
+            {
+                string? imageUrl = null;
+
+                // Upload image if provided
+                if (dto.ImageFile != null)
+                {
+                    imageUrl = await _imageService.SaveRewardImageAsync(dto.ImageFile);
+                }
+
+                var createDto = new CreateRewardDto
+                {
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    Category = dto.Category,
+                    RequiredPoints = dto.RequiredPoints,
+                    StockQuantity = dto.StockQuantity,
+                    ImageUrl = imageUrl ?? dto.ImageUrl // Use uploaded image or provided URL
+                };
+
+                var reward = await _rewardService.AddAsync(createDto);
+                return CreatedAtAction(nameof(GetById), new { id = reward.ID }, reward);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
+            }
         }
 
-        // PUT: api/reward/5
+        // PUT: api/reward/5 (with image upload support)
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateRewardDto dto)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Update(int id, [FromForm] UpdateRewardWithImageDto dto)
         {
-            if (id != dto.ID)
-                return BadRequest();
+            try
+            {
+                if (id != dto.ID)
+                    return BadRequest(new { error = "ID mismatch" });
 
-            var reward = await _rewardService.UpdateAsync(dto);
-            return Ok(reward);
+                string? imageUrl = dto.ImageUrl;
+
+                // Upload new image if provided
+                if (dto.ImageFile != null)
+                {
+                    var existingReward = await _rewardService.GetByIdAsync(id);
+                    imageUrl = await _imageService.UpdateRewardImageAsync(existingReward?.ImageUrl, dto.ImageFile);
+                }
+
+                var updateDto = new UpdateRewardDto
+                {
+                    ID = dto.ID,
+                    Name = dto.Name,
+                    Description = dto.Description,
+                    Category = dto.Category,
+                    RequiredPoints = dto.RequiredPoints,
+                    StockQuantity = dto.StockQuantity,
+                    IsAvailable = dto.IsAvailable,
+                    ImageUrl = imageUrl
+                };
+
+                var reward = await _rewardService.UpdateAsync(updateDto);
+                return Ok(reward);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
+            }
         }
 
         // DELETE: api/reward/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _rewardService.DeleteAsync(id);
-            return result ? NoContent() : NotFound();
+            try
+            {
+                // Get reward to delete its image
+                var reward = await _rewardService.GetByIdAsync(id);
+                
+                // Delete from database
+                var result = await _rewardService.DeleteAsync(id);
+                
+                if (!result)
+                    return NotFound();
+
+                // Delete image file if exists
+                if (!string.IsNullOrWhiteSpace(reward?.ImageUrl))
+                {
+                    _imageService.DeleteRewardImage(reward.ImageUrl);
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        // POST: api/reward/upload-image (Upload image only)
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage([FromForm] IFormFile imageFile)
+        {
+            try
+            {
+                if (imageFile == null || imageFile.Length == 0)
+                    return BadRequest(new { error = "No file uploaded" });
+
+                var imageUrl = await _imageService.SaveRewardImageAsync(imageFile);
+                
+                return Ok(new 
+                { 
+                    success = true, 
+                    imageUrl = imageUrl,
+                    message = "Image uploaded successfully" 
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = $"Internal server error: {ex.Message}" });
+            }
         }
 
         // POST: api/reward/redeem
