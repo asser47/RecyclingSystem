@@ -2,21 +2,13 @@ using BusinessLogicLayer.IServices;
 using BussinessLogicLayer.DTOs.Order;
 using DataAccessLayer.Entities;
 using DataAccessLayer.UnitOfWork;
-using Microsoft.EntityFrameworkCore;
+using DataAccessLayer.Utilities;
 
 namespace BusinessLogicLayer.Services
 {
     public class OrderService : IOrderService
     {
         private readonly IUnitOfWork _unitOfWork;
-
-        // Points configuration for each material type per kilogram
-        private readonly Dictionary<string, int> _pointsPerKg = new()
-        {
-            { MaterialType.Plastic.ToString(), 5 },
-            { MaterialType.Paper.ToString(), 8 },
-            { MaterialType.Can.ToString(), 10 }
-        };
 
         public OrderService(IUnitOfWork unitOfWork)
         {
@@ -123,71 +115,72 @@ namespace BusinessLogicLayer.Services
             var order = await _unitOfWork.Orders.GetByIdAsync(id);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {id} not found.");
-                                
+
             _unitOfWork.Orders.Remove(order);
             await _unitOfWork.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// Completes an order and awards points to the user
+        /// </summary>
         public async Task<bool> CompleteOrderAsync(int orderId)
         {
-            // Get order with all details including materials and user
-            var order = await _unitOfWork.Orders.GetOrderWithDetailsAsync(orderId);
-            if (order == null)
-                throw new KeyNotFoundException($"Order with ID {orderId} not found.");
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
 
-            // Check if order is already completed
-            if (order.Status == OrderStatus.Completed)
+                // Get order with materials and user
+                var order = await _unitOfWork.Orders.GetOrderWithDetailsAsync(orderId);
+                
+                if (order == null)
+                    throw new KeyNotFoundException($"Order with ID {orderId} not found.");
+
+                if (order.Status != OrderStatus.Pending)
+                    throw new InvalidOperationException("Only pending orders can be completed.");
+
+                if (order.User == null)
+                    throw new InvalidOperationException("Order has no associated user.");
+
+                // Calculate points from materials
+                int pointsEarned = PointsCalculator.CalculateOrderPoints(order);
+
+                // Award points to user
+                order.User.Points += pointsEarned;
+
+                // Update order status
+                order.Status = OrderStatus.Completed;
+
+                _unitOfWork.Orders.Update(order);
+                await _unitOfWork.CommitTransactionAsync();
+
+                return true;
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Cancels an order (no points awarded)
+        /// </summary>
+        public async Task<bool> CancelOrderAsync(int orderId)
+        {
+            var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+            
+            if (order == null)
                 return false;
 
-            // Check if order is cancelled
-            if (order.Status == OrderStatus.Cancelled)
-                throw new InvalidOperationException("Cannot complete a cancelled order.");
+            if (order.Status == OrderStatus.Completed)
+                throw new InvalidOperationException("Cannot cancel a completed order.");
 
-            // Calculate points based on materials
-            int totalPoints = CalculatePointsForOrder(order.Materials);
-
-            // Update order status
-            order.Status = OrderStatus.Completed;
-
-            // Award points to user
-            var user = await _unitOfWork.Users.GetByIdAsync(order.UserId);
-            if (user != null)
-            {
-                user.Points += totalPoints;
-                _unitOfWork.Users.Update(user);
-            }
-
-            // Save changes
+            order.Status = OrderStatus.Cancelled;
+            
             _unitOfWork.Orders.Update(order);
             await _unitOfWork.SaveChangesAsync();
 
             return true;
-        }
-
-        private int CalculatePointsForOrder(ICollection<Material> materials)
-        {
-            int totalPoints = 0;
-
-            foreach (var material in materials)
-            {
-                if (_pointsPerKg.TryGetValue(material.TypeName ?? string.Empty, out int pointsPerKg))
-                {
-                    // Size is in kilograms, calculate points
-                    int materialPoints = (int)(material.Size * pointsPerKg);
-                    totalPoints += materialPoints;
-                }
-            }
-
-            return totalPoints;
-        }
-
-        public async Task<int> GetPointsForOrderAsync(int orderId)
-        {
-            var order = await _unitOfWork.Orders.GetOrderWithDetailsAsync(orderId);
-            if (order == null)
-                throw new KeyNotFoundException($"Order with ID {orderId} not found.");
-
-            return CalculatePointsForOrder(order.Materials);
         }
     }
 }

@@ -1,5 +1,6 @@
 using BusinessLogicLayer.IServices;
 using BussinessLogicLayer.DTOs.Order;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PresentationLayer.Controllers
@@ -123,42 +124,24 @@ namespace PresentationLayer.Controllers
         /// <param name="id">Order ID</param>
         /// <returns>Success message with total points awarded</returns>
         [HttpPost("{id}/complete")]
+        [Authorize(Policy = "AdminOnly")] // Or CollectorAccess
         public async Task<IActionResult> CompleteOrder(int id)
         {
-            try
-            {
-                var pointsAwarded = await _orderService.GetPointsForOrderAsync(id);
-                var completed = await _orderService.CompleteOrderAsync(id);
-                
-                if (!completed)
-                {
-                    return BadRequest("Order is already completed");
-                }
+            var result = await _orderService.CompleteOrderAsync(id);
+            return Ok(new { success = result, message = "Order completed and points awarded" });
+        }
 
-                return Ok(new
-                {
-                    Message = "Order completed successfully",
-                    PointsAwarded = pointsAwarded,
-                    PointsBreakdown = new
-                    {
-                        Plastic = "5 points per kg",
-                        Paper = "8 points per kg",
-                        Can = "10 points per kg"
-                    }
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+        /// <summary>
+        /// Cancel an order and revoke any awarded points
+        /// </summary>
+        /// <param name="id">Order ID</param>
+        /// <returns>Success message</returns>
+        [HttpPost("{id}/cancel")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> CancelOrder(int id)
+        {
+            var result = await _orderService.CancelOrderAsync(id);
+            return Ok(new { success = result, message = "Order cancelled" });
         }
 
         /// <summary>
