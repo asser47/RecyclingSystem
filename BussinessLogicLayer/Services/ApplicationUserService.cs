@@ -26,14 +26,7 @@ namespace BusinessLogicLayer.Services
         public async Task<IEnumerable<ApplicationUserDto>> GetAllAsync()
         {
             var users = await _unitOfWork.Users.GetAllAsync();
-            return users.Select(user => new ApplicationUserDto
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber,
-                Points = user.Points
-            });
+            return _mapper.Map<IEnumerable<ApplicationUserDto>>(users);
         }
 
         public async Task<ApplicationUserDto?> GetByIdAsync(string id)
@@ -42,16 +35,9 @@ namespace BusinessLogicLayer.Services
             if (user == null)
                 return null;
 
-            return new ApplicationUserDto
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber,
-                Points = user.Points
-            };
+            return _mapper.Map<ApplicationUserDto>(user);
         }
-                
+
         public async Task UpdateAsync(ApplicationUserDto dto)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(dto.Id);
@@ -92,7 +78,7 @@ namespace BusinessLogicLayer.Services
                     throw new InvalidOperationException("Email already in use by another account.");
 
                 user.Email = dto.Email;
-                user.UserName = dto.Email; // Keep username synced with email
+                user.UserName = dto.FullName; // Keep username synced with email
                 user.EmailConfirmed = false; // Require re-confirmation
             }
 
