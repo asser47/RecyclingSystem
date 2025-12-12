@@ -172,7 +172,6 @@ namespace BusinessLogicLayer.Services
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            // 👇 استخدم رابط Angular بدلاً من API
             var frontEndUrl = _config["AppSettings:FrontEndUrl"] ?? "http://localhost:4200";
             var resetLink =
                 $"{frontEndUrl}/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(token)}";

@@ -1,4 +1,5 @@
 ﻿using BussinessLogicLayer.DTOs.AppUser;
+using BussinessLogicLayer.DTOs.Collector;
 
 namespace BusinessLogicLayer.IServices
 {
@@ -12,6 +13,12 @@ namespace BusinessLogicLayer.IServices
         // New methods for user profile management
         Task<UpdateUserProfileDto?> GetUserProfileAsync(string userId);
         Task<bool> UpdateUserProfileAsync(string userId, UpdateUserDto dto);
+
+        // Collector management
+        Task<CollectorDto> HireCollectorAsync(HireCollectorDto dto);
+        Task<IEnumerable<CollectorDto>> GetAllCollectorsAsync();
+        Task<CollectorDto?> GetCollectorByIdAsync(string collectorId);
+        Task<bool> FireCollectorAsync(string collectorId);
     }
 }
 

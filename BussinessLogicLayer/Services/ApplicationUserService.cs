@@ -107,5 +107,118 @@ namespace BusinessLogicLayer.Services
                 Points = user.Points
             };
         }
+
+        public async Task<CollectorDto> HireCollectorAsync(HireCollectorDto dto)
+        {
+            // Check if email already exists
+            var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+            if (existingUser != null)
+                throw new InvalidOperationException("Email already in use.");
+
+            // Create new collector user
+            var collector = new ApplicationUser
+            {
+                FullName = dto.FullName,
+                Email = dto.Email,
+                UserName = dto.Email,
+                PhoneNumber = dto.PhoneNumber,
+                Points = 0,
+                EmailConfirmed = true // Auto-confirm for hired collectors
+            };
+
+            var result = await _userManager.CreateAsync(collector, dto.Password);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to create collector: {errors}");
+            }
+
+            // Assign Collector role
+            await _userManager.AddToRoleAsync(collector, "Collector");
+
+            // Get assigned orders count
+            var orders = await _unitOfWork.Orders.GetOrdersByCollectorIdAsync(collector.Id);
+
+            return new CollectorDto
+            {
+                Id = collector.Id,
+                FullName = collector.FullName,
+                Email = collector.Email ?? string.Empty,
+                PhoneNumber = collector.PhoneNumber,
+                AssignedOrdersCount = orders.Count(),
+                HiredDate = DateTime.UtcNow
+            };
+        }
+
+        public async Task<IEnumerable<CollectorDto>> GetAllCollectorsAsync()
+        {
+            // Get users in Collector role
+            var collectorsInRole = await _userManager.GetUsersInRoleAsync("Collector");
+            
+            var collectorDtos = new List<CollectorDto>();
+
+            foreach (var collector in collectorsInRole)
+            {
+                var orders = await _unitOfWork.Orders.GetOrdersByCollectorIdAsync(collector.Id);
+                
+                collectorDtos.Add(new CollectorDto
+                {
+                    Id = collector.Id,
+                    FullName = collector.FullName,
+                    Email = collector.Email ?? string.Empty,
+                    PhoneNumber = collector.PhoneNumber,
+                    AssignedOrdersCount = orders.Count(),
+                    HiredDate = DateTime.UtcNow // You might want to add this to ApplicationUser
+                });
+            }
+
+            return collectorDtos;
+        }
+
+        public async Task<CollectorDto?> GetCollectorByIdAsync(string collectorId)
+        {
+            var collector = await _userManager.FindByIdAsync(collectorId);
+            if (collector == null)
+                return null;
+
+            // Verify user is a collector
+            var isCollector = await _userManager.IsInRoleAsync(collector, "Collector");
+            if (!isCollector)
+                return null;
+
+            var orders = await _unitOfWork.Orders.GetOrdersByCollectorIdAsync(collector.Id);
+
+            return new CollectorDto
+            {
+                Id = collector.Id,
+                FullName = collector.FullName,
+                Email = collector.Email ?? string.Empty,
+                PhoneNumber = collector.PhoneNumber,
+                AssignedOrdersCount = orders.Count(),
+                HiredDate = DateTime.UtcNow
+            };
+        }
+
+        public async Task<bool> FireCollectorAsync(string collectorId)
+        {
+            var collector = await _userManager.FindByIdAsync(collectorId);
+            if (collector == null)
+                return false;
+
+            // Check if user has assigned orders
+            var orders = await _unitOfWork.Orders.GetOrdersByCollectorIdAsync(collectorId);
+            var activeOrders = orders.Where(o => o.Status == OrderStatus.Pending).ToList();
+
+            if (activeOrders.Any())
+                throw new InvalidOperationException("Cannot fire collector with active pending orders. Please reassign orders first.");
+
+            // Remove Collector role
+            await _userManager.RemoveFromRoleAsync(collector, "Collector");
+
+            // Optionally, you could delete the user entirely
+            // await _userManager.DeleteAsync(collector);
+
+            return true;
+        }
     }
 }
