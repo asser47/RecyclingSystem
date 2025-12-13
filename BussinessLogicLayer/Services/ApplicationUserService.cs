@@ -76,9 +76,9 @@ namespace BusinessLogicLayer.Services
                 var emailExists = await _userManager.FindByEmailAsync(dto.Email);
                 if (emailExists != null && emailExists.Id != userId)
                     throw new InvalidOperationException("Email already in use by another account.");
-
+    
                 user.Email = dto.Email;
-                user.UserName = dto.FullName; // Keep username synced with email
+                user.UserName = dto.Email; // Keep username synced with email
                 user.EmailConfirmed = false; // Require re-confirmation
             }
 
