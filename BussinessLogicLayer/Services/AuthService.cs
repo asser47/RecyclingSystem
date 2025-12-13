@@ -42,6 +42,7 @@ namespace BusinessLogicLayer.Services
                 FullName = dto.FullName,
                 Email = dto.Email,
                 UserName = dto.Email,
+                PhoneNumber=dto.PhoneNumber,
                 Points = 0
             };
 

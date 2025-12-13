@@ -46,6 +46,7 @@ namespace BusinessLogicLayer.Services
 
             user.FullName = dto.FullName;
             user.Points = dto.Points;
+            user.PhoneNumber = dto.PhoneNumber;
 
             // Update email if changed
             if (!string.IsNullOrWhiteSpace(dto.Email) && dto.Email != user.Email)
