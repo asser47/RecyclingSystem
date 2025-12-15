@@ -128,7 +128,7 @@ namespace BusinessLogicLayer.Services
 
                 // Get user with points
                 var user = await _unitOfWork.Orders.FirstOrDefaultAsync(o => o.UserId == userId);
-                if (user?.User == null)
+                if (user == null)
                     throw new KeyNotFoundException("User not found");
 
                 // Get reward
