@@ -112,30 +112,30 @@ namespace BusinessLogicLayer.Services
             if (appUser == null)
                 throw new KeyNotFoundException($"User with email {dto.Email} not found.");
 
+            // Update user address if provided in DTO
+            if (!string.IsNullOrEmpty(dto.City))
+            {
+                appUser.City = dto.City;
+                appUser.Street = dto.Street;
+                appUser.BuildingNo = dto.BuildingNo;
+                appUser.Apartment = dto.Apartment;
+                _unitOfWork.Users.Update(appUser);
+            }
+
             // Parse material type
             if (!Enum.TryParse<MaterialType>(dto.TypeOfMaterial, ignoreCase: true, out var materialType))
                 throw new ArgumentException($"Invalid material type: {dto.TypeOfMaterial}");
 
-            // Find or create material
-            var materials = await _unitOfWork.Materials.GetMaterialsByTypeAsync(materialType.ToString());
-            var material = materials.FirstOrDefault();
-
-            if (material == null)
+            // Always create NEW material instance for each order
+            var material = new Material
             {
-                material = new Material
-                {
-                    TypeName = materialType.ToString(),
-                    Size = dto.Quantity,
-                    Price = 0
-                };
-                await _unitOfWork.Materials.AddAsync(material);
-            }
-            else
-            {
-                material.Size = dto.Quantity;
-            }
+                TypeName = materialType.ToString(),
+                Size = dto.Quantity,
+                Price = 0 // Price can be calculated based on business logic
+            };
+            await _unitOfWork.Materials.AddAsync(material);
 
-            // Find factory
+            // Find factory (TODO: improve selection logic based on city/capacity)
             var factories = await _unitOfWork.Factories.GetAllAsync();
             var factory = factories.FirstOrDefault();
             if (factory == null)
