@@ -30,6 +30,12 @@ namespace BusinessLogicLayer.Services
                 CollectorName = entity.Collector?.UserName,
                 FactoryName = entity.Factory?.Name,
                 
+                // Pickup Address (from Order itself)
+                City = entity.City,
+                Street = entity.Street,
+                BuildingNo = entity.BuildingNo,
+                Apartment = entity.Apartment,
+                
                 // User Address
                 UserCity = entity.User?.City,
                 UserStreet = entity.User?.Street,
@@ -40,7 +46,13 @@ namespace BusinessLogicLayer.Services
                 CollectorCity = entity.Collector?.City,
                 CollectorStreet = entity.Collector?.Street,
                 CollectorBuildingNo = entity.Collector?.BuildingNo,
-                CollectorApartment = entity.Collector?.Apartment
+                CollectorApartment = entity.Collector?.Apartment,
+                
+                // Factory Address
+                FactoryCity = entity.Factory?.City,
+                FactoryStreet = entity.Factory?.Street,
+                FactoryBuildingNo = entity.Factory?.BuildingNo,
+                FactoryArea = entity.Factory?.Area
             };
         }
 
@@ -112,8 +124,8 @@ namespace BusinessLogicLayer.Services
             if (appUser == null)
                 throw new KeyNotFoundException($"User with email {dto.Email} not found.");
 
-            // Update user address if provided in DTO
-            if (!string.IsNullOrEmpty(dto.City))
+            // Update user address if not already set
+            if (string.IsNullOrEmpty(appUser.City) && !string.IsNullOrEmpty(dto.City))
             {
                 appUser.City = dto.City;
                 appUser.Street = dto.Street;
@@ -141,13 +153,18 @@ namespace BusinessLogicLayer.Services
             if (factory == null)
                 throw new InvalidOperationException("No factory available.");
 
-            // Create order entity
+            // Create order entity with pickup address
             var order = new Order
             {
                 OrderDate = DateOnly.FromDateTime(DateTime.Now),
                 Status = OrderStatus.Pending,
                 UserId = appUser.Id,
                 FactoryId = factory.ID,
+                // Pickup address from DTO
+                City = dto.City,
+                Street = dto.Street,
+                BuildingNo = dto.BuildingNo,
+                Apartment = dto.Apartment,
                 Materials = new List<Material> { material }
             };
 
