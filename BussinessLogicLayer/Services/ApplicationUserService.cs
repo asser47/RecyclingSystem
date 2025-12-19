@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using BusinessLogicLayer.IServices;
 using BussinessLogicLayer.DTOs.AppUser;
 using DataAccessLayer.Entities;
@@ -259,15 +259,30 @@ namespace BusinessLogicLayer.Services
                     "Please complete or reassign these orders first.");
             }
 
-            // Remove Collector role
-            var result = await _userManager.RemoveFromRoleAsync(collector, "Collector");
+            // Option 1: Handle completed/cancelled orders by nullifying the collector reference
+            var completedOrders = orders.Where(o => 
+                o.Status == OrderStatus.Completed || 
+                o.Status == OrderStatus.Cancelled
+            ).ToList();
+
+            foreach (var order in completedOrders)
+            {
+                order.CollectorId = null; // Remove collector reference
+                _unitOfWork.Orders.Update(order);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            // Delete the collector user from database
+            var result = await _userManager.DeleteAsync(collector);
             
             if (!result.Succeeded)
             {
                 var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Failed to remove collector role: {errors}");
+                throw new InvalidOperationException($"Failed to delete collector: {errors}");
             }
 
+            Console.WriteLine($"✅ Collector deleted from database: {collector.Email}");
             return true;
         }
     }
