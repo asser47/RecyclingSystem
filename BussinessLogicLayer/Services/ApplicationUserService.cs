@@ -259,21 +259,22 @@ namespace BusinessLogicLayer.Services
                     "Please complete or reassign these orders first.");
             }
 
-            // Option 1: Handle completed/cancelled orders by nullifying the collector reference
-            var completedOrders = orders.Where(o => 
-                o.Status == OrderStatus.Completed || 
-                o.Status == OrderStatus.Cancelled
-            ).ToList();
+            // Store collector name for audit purposes
+            var collectorName = collector.FullName;
+            var collectorEmail = collector.Email;
 
-            foreach (var order in completedOrders)
+            // Nullify collector reference in ALL orders to allow deletion
+            foreach (var order in orders)
             {
-                order.CollectorId = null; // Remove collector reference
+                order.CollectorId = null;
+                // Optional: Store collector name in order notes/description for history
+                // order.Notes = $"Handled by {collectorName} (fired)";
                 _unitOfWork.Orders.Update(order);
             }
 
             await _unitOfWork.SaveChangesAsync();
 
-            // Delete the collector user from database
+            // Delete the collector user completely from database
             var result = await _userManager.DeleteAsync(collector);
             
             if (!result.Succeeded)
@@ -282,7 +283,7 @@ namespace BusinessLogicLayer.Services
                 throw new InvalidOperationException($"Failed to delete collector: {errors}");
             }
 
-            Console.WriteLine($"✅ Collector deleted from database: {collector.Email}");
+            Console.WriteLine($"✅ Collector deleted from database: {collectorName} ({collectorEmail})");
             return true;
         }
     }
