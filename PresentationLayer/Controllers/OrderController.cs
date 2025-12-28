@@ -128,6 +128,9 @@ namespace PresentationLayer.Controllers
         // In OrderController.cs CompleteOrder endpoint
         [HttpPost("{id}/complete")]
         [Authorize(Policy = "AdminOnly")]
+        // In OrderController.cs CompleteOrder endpoint
+        [HttpPost("{id}/complete")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> CompleteOrder(int id)
         {
             try
