@@ -1,8 +1,8 @@
 ﻿using DataAccessLayer.Context;
 using DataAccessLayer.Repositories.Impementations;
 using DataAccessLayer.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-
 
 namespace DataAccessLayer.UnitOfWork
 {
@@ -36,18 +36,34 @@ namespace DataAccessLayer.UnitOfWork
 
         public async Task BeginTransactionAsync()
         {
-            _transaction = await _context.Database.BeginTransactionAsync();
+            // ✅ FIX: Check if transaction already exists
+            if (_transaction != null)
+            {
+                return; // Transaction already active
+            }
+
+            // Use execution strategy to handle retries
+            var strategy = _context.Database.CreateExecutionStrategy();
+            
+            await strategy.ExecuteAsync(async () =>
+            {
+                _transaction = await _context.Database.BeginTransactionAsync();
+            });
         }
 
         public async Task CommitTransactionAsync()
         {
             try
             {
-                await SaveChangesAsync();
-                if (_transaction != null)
+                if (_transaction == null)
                 {
-                    await _transaction.CommitAsync();
+                    // No active transaction, just save changes
+                    await SaveChangesAsync();
+                    return;
                 }
+
+                await SaveChangesAsync();
+                await _transaction.CommitAsync();
             }
             catch
             {
@@ -68,9 +84,15 @@ namespace DataAccessLayer.UnitOfWork
         {
             if (_transaction != null)
             {
-                await _transaction.RollbackAsync();
-                await _transaction.DisposeAsync();
-                _transaction = null;
+                try
+                {
+                    await _transaction.RollbackAsync();
+                }
+                finally
+                {
+                    await _transaction.DisposeAsync();
+                    _transaction = null;
+                }
             }
         }
 
