@@ -101,5 +101,10 @@ namespace DataAccessLayer.UnitOfWork
             _transaction?.Dispose();
             _context.Dispose();
         }
+
+        public IExecutionStrategy GetExecutionStrategy()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
