@@ -1,6 +1,7 @@
 ﻿using DataAccessLayer.Context;
 using DataAccessLayer.Repositories.Impementations;
 using DataAccessLayer.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 
@@ -36,7 +37,12 @@ namespace DataAccessLayer.UnitOfWork
 
         public async Task BeginTransactionAsync()
         {
-            _transaction = await _context.Database.BeginTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
+            
+            await strategy.ExecuteAsync(async () =>
+            {
+                _transaction = await _context.Database.BeginTransactionAsync();
+            });
         }
 
         public async Task CommitTransactionAsync()
