@@ -23,10 +23,6 @@ namespace BusinessLogicLayer.Services
         public async Task<IEnumerable<RewardDto>> GetAllAsync()
         {
             var rewards = await _unitOfWork.Rewards.GetAllAsync();
-
-            // 🔴 الفلترة الناقصة
-            rewards = rewards.Where(r => r.IsAvailable);
-
             return _mapper.Map<IEnumerable<RewardDto>>(rewards);
         }
 
@@ -71,10 +67,15 @@ namespace BusinessLogicLayer.Services
 
         public async Task<bool> DeleteAsync(int id)
         {
-            await _unitOfWork.Rewards.DeleteAsync(id);
+            var reward = await _unitOfWork.Rewards.GetByIdAsync(id);
+            if (reward == null)
+                return false;
+
+            _unitOfWork.Rewards.Remove(reward); // ❗ مهم
             await _unitOfWork.SaveChangesAsync();
             return true;
         }
+
 
         // User-facing Features
         public async Task<IEnumerable<RewardDto>> GetAvailableRewardsForUserAsync(string userId)
