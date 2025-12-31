@@ -27,12 +27,13 @@ namespace BusinessLogicLayer.Services
                 CollectorId = entity.CollectorId,
                 FactoryId = entity.FactoryId,
                 
-                // ✅ ADD: Material type and quantity mapping
+                // Material type and quantity mapping
                 TypeOfMaterial = entity.TypeOfMaterial.ToString(),
                 Quantity = entity.Quantity,
                 
-                UserName = entity.User?.UserName,
-                CollectorName = entity.Collector?.UserName,
+                // ✅ FIX: Use FullName first, then UserName, then Email as fallback
+                UserName = entity.User?.FullName ?? entity.User?.UserName ?? entity.User?.Email,
+                CollectorName = entity.Collector?.FullName ?? entity.Collector?.UserName ?? entity.Collector?.Email,
                 FactoryName = entity.Factory?.Name,
                 
                 // Pickup Address (from Order itself)
@@ -148,10 +149,10 @@ namespace BusinessLogicLayer.Services
             if (factory == null)
                 throw new InvalidOperationException("No factory available.");
 
-            // 4️⃣ Create order (NO Material insert)
+            // 4️⃣ Create order
             var order = new Order
             {
-                OrderDate = DateOnly.FromDateTime(DateTime.Now),
+                OrderDate = DateTime.Now, // ✅ Changed from DateOnly to DateTime
                 Status = OrderStatus.Pending,
 
                 UserId = appUser.Id,
@@ -162,7 +163,6 @@ namespace BusinessLogicLayer.Services
                 BuildingNo = dto.BuildingNo,
                 Apartment = dto.Apartment,
 
-                // ✅ enum مباشر
                 TypeOfMaterial = dto.TypeOfMaterial,
                 Quantity = dto.Quantity
             };

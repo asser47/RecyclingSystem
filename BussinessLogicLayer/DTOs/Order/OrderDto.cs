@@ -4,7 +4,7 @@
     {
         public int ID { get; set; }
         public string Status { get; set; } = string.Empty;
-        public DateOnly OrderDate { get; set; }
+        public DateTime OrderDate { get; set; } // ✅ Changed from DateOnly to DateTime
         public string UserId { get; set; } = string.Empty;
         public string? CollectorId { get; set; }
         public int FactoryId { get; set; }

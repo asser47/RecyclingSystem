@@ -1,15 +1,15 @@
-﻿                using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+    
 namespace DataAccessLayer.Entities
 {
     public class Order
     {
         public int ID { get; set; }
-        public DateOnly OrderDate { get; set; }
+        public DateTime OrderDate { get; set; } = DateTime.Now; // Changed from DateOnly to DateTime
 
         public MaterialType TypeOfMaterial { get; set; }
         public double Quantity { get; set; }
