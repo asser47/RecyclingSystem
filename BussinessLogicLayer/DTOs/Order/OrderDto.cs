@@ -9,6 +9,10 @@
         public string? CollectorId { get; set; }
         public int FactoryId { get; set; }
         
+        // ✅ ADD: Material type and quantity
+        public string? TypeOfMaterial { get; set; }
+        public double Quantity { get; set; }
+        
         // Navigation properties (optional, for detailed views)
         public string? UserName { get; set; }
         public string? CollectorName { get; set; }

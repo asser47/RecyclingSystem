@@ -26,6 +26,11 @@ namespace BusinessLogicLayer.Services
                 UserId = entity.UserId,
                 CollectorId = entity.CollectorId,
                 FactoryId = entity.FactoryId,
+                
+                // ✅ ADD: Material type and quantity mapping
+                TypeOfMaterial = entity.TypeOfMaterial.ToString(),
+                Quantity = entity.Quantity,
+                
                 UserName = entity.User?.UserName,
                 CollectorName = entity.Collector?.UserName,
                 FactoryName = entity.Factory?.Name,
