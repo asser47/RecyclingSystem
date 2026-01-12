@@ -117,9 +117,9 @@ namespace RecyclingSystem
                             "https://greenzonee.netlify.app",           // Production frontend
                             "https://recycle-hub.runasp.net"            // Production backend
                           )
-                          .AllowAnyMethod()
                           .AllowAnyHeader()
-                          .AllowCredentials();
+                          .AllowAnyMethod();
+
                 });
             });
 
