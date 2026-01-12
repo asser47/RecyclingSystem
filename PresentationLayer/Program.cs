@@ -119,6 +119,7 @@ namespace RecyclingSystem
             });
 
             var app = builder.Build();
+            app.UseRouting();
             app.UseCors("AllowAll");
 
             // Seed Admin Account
