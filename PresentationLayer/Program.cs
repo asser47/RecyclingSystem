@@ -112,9 +112,14 @@ namespace RecyclingSystem
             {
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.AllowAnyOrigin()
+                    policy.WithOrigins(
+                            "http://localhost:4200",                    // Local Angular development
+                            "https://greenzonee.netlify.app",           // Production frontend
+                            "https://recycle-hub.runasp.net"            // Production backend
+                          )
                           .AllowAnyMethod()
-                          .AllowAnyHeader();
+                          .AllowAnyHeader()
+                          .AllowCredentials();
                 });
             });
 
